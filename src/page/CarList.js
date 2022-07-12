@@ -1,9 +1,17 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import AddNewcar from "./AddNewCar";
+import { Button, Input } from "reactstrap";
 import EditCar from "./EditCar";
+import AddNewCar from "./AddNewCar";
 
 function CarList() {
+  const [search, setSearch] = useState("");
+  const handleSearch = async (e) => {
+    const res = await axios.get(
+      `http://localhost:8000/api/show?search=${search}`
+    );
+    setCars({ CarList: res, isLoaded: true });
+  };
   const [cars, setCars] = useState([
     {
       id: "",
@@ -15,6 +23,7 @@ function CarList() {
   ]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [noDataFound, setNoDataFound] = useState("");
+
   useEffect(() => {
     if (!isLoaded) getCars();
   }, [isLoaded]);
@@ -24,9 +33,9 @@ function CarList() {
       .get("http://127.0.0.1:8000/api/cars")
       .then(function (res) {
         if (res.status === 200) {
-          setCars(res.data.data ? res.data.data : []); 
+          setCars(res.data.data ? res.data.data : []);
           console.log(res.data.data ? res.data.data : []);
-          console.log(cars); 
+          console.log(cars);
         }
         if (res.data.status === "failed" && res.data.success === false) {
           setNoDataFound(res.data.data);
@@ -46,6 +55,7 @@ function CarList() {
     id: "",
     model: "",
     description: "",
+    mf_id: "",
     produced_on: "",
     image: "",
   });
@@ -66,10 +76,24 @@ function CarList() {
         console.log(error);
       });
   };
+  const handlerOnchange = (e) => {
+    const val = e.target.value;
+    setSearch(val);
+    console.log(search);
+  };
   return (
     <div className="container fluid">
+      <Input
+        search="text"
+        className="form-control"
+        value={search}
+        placeholder="Enter model"
+        onChange={handlerOnchange}
+        style={{ width: "50em" }}
+      /> 
+      <br></br>
       <h2>Danh sách xe</h2>
-      <AddNewcar onAdded={setIsLoaded} getCars={getCars} />
+      <AddNewCar onAdded={setIsLoaded} getCars={getCars} />
       <EditCar
         cars={cars}
         setCars={setCars}
@@ -79,6 +103,7 @@ function CarList() {
         editCarData={editCarData}
         setEditCarData={setEditCarData}
       />
+
       <table className="table">
         <thead>
           <tr>
@@ -93,40 +118,48 @@ function CarList() {
         </thead>
         <tbody>
           {!!cars ? (
-            cars.map((car, index) => (
-              <tr key={index}>
-                <td scope="row">{car.id}</td>
-                <td>{car.model}</td>
-                <td style={{ width: "35em" }}>{car.description}</td>
-                <td>{car.produced_on}</td>
-                <td>
-                  <img
-                    src={`http://localhost:8000/images/${car.image}`}
-                    style={{ width: "100px" }}
-                    alt=""
-                  />
-                </td>
-                <td colSpan={2}>
-                  <button
-                    type="button"
-                    className="btn btn-success"
-                    onClick={() => toggleEditModal(car)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-danger"
-                    onClick={() => {
-                      if (window.confirm("Bạn có chắc chắn xóa?"))
-                        deleteCar(car.id);
-                    }}
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))
+            cars
+              .filter((cars) =>
+                search === ""
+                  ? true
+                  : cars.model.toLowerCase().indexOf(search.toLowerCase()) !==
+                    -1
+              )
+              .map((car, index) => (
+                <tr key={index}>
+                  <th scope={"row"}>{car.id}</th>
+                  <td>{car.model}</td>
+                  <td style={{ width: "35em" }}>{car.description}</td>
+                  <td>{car.name_mfs}</td>
+                  <td>{car.produced_on}</td>
+                  <td>
+                    <img
+                      src={`http://localhost:8000/images/${car.image}`}
+                      style={{ width: "100px" }}
+                      alt=""
+                    />
+                  </td>
+                  <td colSpan={2}>
+                    <button
+                      type="button"
+                      className="btn btn-success"
+                      onClick={() => toggleEditModal(car)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      onClick={() => {
+                        if (window.confirm("Bạn có chắc chắn xóa?"))
+                          deleteCar(car.id);
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))
           ) : (
             <tr>
               <td>No Data in API</td>
